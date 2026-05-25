@@ -183,17 +183,7 @@ class script(object):
 
     PREMIUM_TEXT = """<b>💎 <u>ᴘʀᴇᴍɪᴜᴍ ᴘʟᴀɴꜱ</u> 💎
 
-🗓️ 07 ᴅᴀʏꜱ  ➪  15 ₹ / 15 ⭐
-🗓️ 15 ᴅᴀʏꜱ  ➪  30 ₹ / 30 ⭐
-🗓️ 01 ᴍᴏɴᴛʜ ➪  60 ₹ / 60 ⭐
-🗓️ 02 ᴍᴏɴᴛʜꜱ ➪ 120 ₹ / 120 ⭐
-🗓️ 03 ᴍᴏɴᴛʜꜱ ➪ 220 ₹ / 220 ⭐
-
-📜 <a href='https://t.me/+blcE2jS-iGtkMjNl'>ᴄʜᴇᴄᴋ ᴘʀᴏᴏꜰꜱ</a>
-
-⚠️ ɪᴍᴘᴏʀᴛᴀɴᴛ:
-1️⃣ ꜱᴇɴᴅ ꜱᴄʀᴇᴇɴꜱʜᴏᴛ ᴀꜰᴛᴇʀ ᴘᴀʏᴍᴇɴᴛ.
-2️⃣ ᴡᴀɪᴛ ꜰᴏʀ ᴀᴅᴍɪɴ ᴄᴏɴꜰɪʀᴍᴀᴛɪᴏɴ ᴛᴏ ʙᴇ ᴀᴅᴅᴇᴅ.</b>"""
+No Premiem Plans</b>"""
 
     PREMIUM_STAR_TEXT = """<b><blockquote>ᴘᴀʏᴍᴇɴᴛ ᴍᴇᴛʜᴏᴅ: ᴛᴇʟᴇɢʀᴀᴍ ꜱᴛᴀʀꜱ ⭐</blockquote>
 
@@ -243,8 +233,7 @@ class script(object):
 
 ᴍᴇꜱꜱᴀɢᴇ : <b>{}</b>"""
     
-    CAPTION = """<b>{file_name}\n
-📤 ᴜᴘʟᴏᴀᴅᴇᴅ ʙʏ: <a href="https://t.me/SilentXBotz">SɪʟᴇɴᴛXʙᴏᴛᴢ</a></b>"""
+    CAPTION = """<b>{file_name}</b>"""
 
     IMDB_TEMPLATE_TXT = """
 <b>🎬 ᴛɪᴛʟᴇ: <a href={url}>{title}</a>

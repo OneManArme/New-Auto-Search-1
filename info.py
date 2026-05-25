@@ -57,7 +57,7 @@ OWNER_LNK = environ.get('OWNER_LNK', 'https://t.me/moviesearchgrp')
 UPDATE_CHANNEL_LNK = environ.get('UPDATE_CHANNEL_LNK', 'https://t.me/moviesearchgrp')
 
 AUTH_CHANNEL = environ.get("AUTH_CHANNEL", "-1003645978156") # add multiple channels here, separated by single space
-AUTH_REQ_CHANNEL = environ.get('AUTH_REQ_CHANNEL', 'no')
+AUTH_REQ_CHANNEL = environ.get('AUTH_REQ_CHANNEL', '')
 
 IS_VERIFY = is_enabled(environ.get('IS_VERIFY', "True"), True)
 LOG_VR_CHANNEL = int(environ.get('LOG_VR_CHANNEL', '-1003999417050'))

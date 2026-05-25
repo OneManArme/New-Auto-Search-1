@@ -33,7 +33,7 @@ ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ
 CHANNELS = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('CHANNELS', '-1003801606506 -1001188070894 -1001274359769 -1002341565790 -1001685364040 -100169224324 -1001775437494 -1002223699552 -1002397109795 -1002461730224 -1002063173963').split()]
 LOG_CHANNEL = int(environ.get('LOG_CHANNEL', '-1003999417050'))  
 BIN_CHANNEL = int(environ.get('BIN_CHANNEL', '-1003999417050'))  
-MOVIE_UPDATE_CHANNEL = int(environ.get('MOVIE_UPDATE_CHANNEL', '0'))  
+MOVIE_UPDATE_CHANNEL = int(environ.get('MOVIE_UPDATE_CHANNEL', '-1003645978156'))  
 PREMIUM_LOGS = int(environ.get('PREMIUM_LOGS', '-1003999417050')) 
 auth_grp = environ.get('AUTH_GROUP')
 AUTH_GROUPS = [int(ch) for ch in auth_grp.split()] if auth_grp else None
@@ -56,7 +56,7 @@ CHNL_LNK = environ.get('CHNL_LNK', 'https://t.me/moviesearchgrp')
 OWNER_LNK = environ.get('OWNER_LNK', 'https://t.me/moviesearchgrp')
 UPDATE_CHANNEL_LNK = environ.get('UPDATE_CHANNEL_LNK', 'https://t.me/moviesearchgrp')
 
-AUTH_CHANNEL = environ.get("AUTH_CHANNEL", "0") # add multiple channels here, separated by single space
+AUTH_CHANNEL = environ.get("AUTH_CHANNEL", "-1003645978156") # add multiple channels here, separated by single space
 AUTH_REQ_CHANNEL = environ.get('AUTH_REQ_CHANNEL', '-100')
 
 IS_VERIFY = is_enabled(environ.get('IS_VERIFY', "True"), True)

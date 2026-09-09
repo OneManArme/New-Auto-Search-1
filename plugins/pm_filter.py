@@ -1060,36 +1060,47 @@ async def ai_spell_check(chat_id, wrong_name):
     return None
 
 
-async def advantage_spell_chok(client, message):
-    """
-    Fallback spelling suggestion menu when no direct files match.
-    """
+async def advantage_spell_chok(message):
+    mv_id = message.id
     search = message.text
+    chat_id = message.chat.id
+    settings = await get_settings(chat_id)
+    
+    # 1. Clean the query (remove stop words/fillers)
     cleaned_query = re.sub(
         r"\b(pl(i|e)*?(s|z+|ease|se|ese|(e+)s(e)?)|((send|snd|giv(e)?|gib)(\sme)?)|movie(s)?|new|latest|br((o|u)h?)*|^h(e|a)?(l)*(o)*|mal(ayalam)?|t(h)?amil|file|that|find|und(o)*|kit(t(i|y)?)?o(w)?|thar(u)?(o)*w?|kittum(o)*|aya(k)*(um(o)*)?|full\smovie|any(one)|with\ssubtitle(s)?)",
         "", search, flags=re.IGNORECASE
     ).strip()
-    
-    if not cleaned_query:
-        cleaned_query = search
 
+    if not cleaned_query:
+        cleaned_query = search.strip()
+
+    # 2. First attempt AI auto-correction using IMDb & Database match
+    corrected_title = await ai_spell_check(chat_id, cleaned_query)
+    if corrected_title:
+        # Re-run auto_filter with the verified corrected movie name
+        message.text = corrected_title
+        return await auto_filter(client, message)
+
+    # 3. If AI check couldn't auto-resolve, fetch IMDb poster/title suggestions
     try:
         movies = await get_poster(cleaned_query, bulk=True)
     except Exception as e:
-        LOGGER.error(f"Poster search failed: {e}")
+        LOGGER.error(f"Error fetching posters: {e}")
         movies = None
 
+    # 4. Fallback if IMDb yields no titles
     if not movies:
         google_query = quote_plus(search)
-        button = InlineKeyboardMarkup([[
+        button = [[
             InlineKeyboardButton("🔍 ᴄʜᴇᴄᴋ sᴘᴇʟʟɪɴɢ ᴏɴ ɢᴏᴏɢʟᴇ 🔍", url=f"https://www.google.com/search?q={google_query}")
-        ]])
+        ]]
         k = await message.reply_text(
             text=script.I_CUDNT.format(search), 
-            reply_markup=button, 
+            reply_markup=InlineKeyboardMarkup(button),
             disable_web_page_preview=True
         )
-        await asyncio.sleep(30)
+        await asyncio.sleep(60)
         try:
             await k.delete()
             await message.delete()
@@ -1097,21 +1108,24 @@ async def advantage_spell_chok(client, message):
             pass
         return
 
-    user_id = message.from_user.id if message.from_user else 0
+    # 5. Build inline selection buttons for suggested movie titles
+    user = message.from_user.id if message.from_user else 0
     buttons = []
     
-    for movie in movies[:5]:
-        movie_title = getattr(movie, 'title', None) or movie.get('title', 'Unknown')
-        imdb_id = getattr(movie, 'movieID', None) or movie.get('imdb_id', '')
-        if movie_title and imdb_id:
-            buttons.append([InlineKeyboardButton(text=movie_title, callback_data=f"spol#{imdb_id}#{user_id}")])
+    for movie in movies[:5]:  # Limit to top 5 candidates to prevent button overflow
+        # Safe extraction for dicts or Cinemagoer Movie objects
+        title = getattr(movie, 'title', None) or movie.get('title', 'Unknown')
+        movie_id = getattr(movie, 'movieID', None) or movie.get('imdb_id', '')
+        
+        if title and movie_id:
+            buttons.append([InlineKeyboardButton(text=title, callback_data=f"spol#{movie_id}#{user}")])
 
     buttons.append([InlineKeyboardButton(text="🚫 ᴄʟᴏsᴇ 🚫", callback_data='close_data')])
 
     d = await message.reply_text(
         text=script.CUDNT_FND.format(message.from_user.mention), 
         reply_markup=InlineKeyboardMarkup(buttons), 
-        reply_to_message_id=message.id
+        reply_to_message_id=mv_id
     )
     await asyncio.sleep(60)
     try:

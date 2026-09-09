@@ -1020,69 +1020,102 @@ async def auto_filter(client, msg, spoll=False):
         pass
 
 async def ai_spell_check(chat_id, wrong_name):
-    async def search_movie(wrong_name):
-        search_results = await asyncio.to_thread(imdb.search_movie, wrong_name)
-        movie_list = [movie.title for movie in search_results.titles]
-        return movie_list
+    """
+    Performs AI spelling checks using IMDb search results and fuzzy matching.
+    """
+    async def search_movie(query):
+        try:
+            # IMDb return objects directly in a list
+            results = await asyncio.to_thread(imdb.search_movie, query)
+            if not results:
+                return []
+            
+            # Extract valid movie titles safely
+            titles = []
+            for item in results:
+                title = getattr(item, 'get', lambda k, d=None: None)('title') or getattr(item, 'title', None)
+                if title:
+                    titles.append(str(title))
+            return titles
+        except Exception as e:
+            LOGGER.error(f"Error fetching IMDb spellcheck: {e}")
+            return []
+
     movie_list = await search_movie(wrong_name)
     if not movie_list:
-        return
-    for _ in range(5):
-        closest_match = process.extractOne(wrong_name, movie_list)
-        if not closest_match or closest_match[1] <= 80:
-            return 
-        movie = closest_match[0]
-        files, offset, total_results = await get_search_results(chat_id=chat_id, query=movie)
-        if files:
-            return movie
-        movie_list.remove(movie)
+        return None
+
+    # Perform fuzzy matching on returned title choices
+    matches = process.extract(wrong_name, movie_list, limit=5)
+    for match in matches:
+        title_candidate, score = match[0], match[1]
+        if score <= 70:
+            continue
+            
+        # Verify if candidate yields results in local MongoDB
+        files, _, total_results = await get_search_results(chat_id=chat_id, query=title_candidate)
+        if files and total_results > 0:
+            return title_candidate
+
+    return None
+
 
 async def advantage_spell_chok(client, message):
-    mv_id = message.id
+    """
+    Fallback spelling suggestion menu when no direct files match.
+    """
     search = message.text
-    chat_id = message.chat.id
-    settings = await get_settings(chat_id)
-    query = re.sub(
+    cleaned_query = re.sub(
         r"\b(pl(i|e)*?(s|z+|ease|se|ese|(e+)s(e)?)|((send|snd|giv(e)?|gib)(\sme)?)|movie(s)?|new|latest|br((o|u)h?)*|^h(e|a)?(l)*(o)*|mal(ayalam)?|t(h)?amil|file|that|find|und(o)*|kit(t(i|y)?)?o(w)?|thar(u)?(o)*w?|kittum(o)*|aya(k)*(um(o)*)?|full\smovie|any(one)|with\ssubtitle(s)?)",
-        "", message.text, flags=re.IGNORECASE)
-    query = query.strip() + " movie"
+        "", search, flags=re.IGNORECASE
+    ).strip()
+    
+    if not cleaned_query:
+        cleaned_query = search
+
     try:
-        movies = await get_poster(search, bulk=True)
-    except Exception:
-        k = await message.reply(script.I_CUDNT.format(message.from_user.mention))
-        await asyncio.sleep(60)
-        await k.delete()
-        try:
-            await message.delete()
-        except Exception:
-            pass
-        return
+        movies = await get_poster(cleaned_query, bulk=True)
+    except Exception as e:
+        LOGGER.error(f"Poster search failed: {e}")
+        movies = None
+
     if not movies:
-        google = search.replace(" ", "+")
-        button = [[
-            InlineKeyboardButton("🔍 ᴄʜᴇᴄᴋ sᴘᴇʟʟɪɴɢ ᴏɴ ɢᴏᴏɢʟᴇ 🔍", url=f"https://www.google.com/search?q={google}")
-        ]]
-        k = await message.reply_text(text=script.I_CUDNT.format(search), reply_markup=InlineKeyboardMarkup(button))
-        await asyncio.sleep(60)
-        await k.delete()
+        google_query = quote_plus(search)
+        button = InlineKeyboardMarkup([[
+            InlineKeyboardButton("🔍 ᴄʜᴇᴄᴋ sᴘᴇʟʟɪɴɢ ᴏɴ ɢᴏᴏɢʟᴇ 🔍", url=f"https://www.google.com/search?q={google_query}")
+        ]])
+        k = await message.reply_text(
+            text=script.I_CUDNT.format(search), 
+            reply_markup=button, 
+            disable_web_page_preview=True
+        )
+        await asyncio.sleep(30)
         try:
+            await k.delete()
             await message.delete()
         except Exception:
             pass
         return
-    user = message.from_user.id if message.from_user else 0
-    buttons = [[
-        InlineKeyboardButton(text=movie.title, callback_data=f"spol#{movie.imdb_id}#{user}")
-    ]
-        for movie in movies
-    ]
-    buttons.append(
-        [InlineKeyboardButton(text="🚫 ᴄʟᴏsᴇ 🚫", callback_data='close_data')]
+
+    user_id = message.from_user.id if message.from_user else 0
+    buttons = []
+    
+    for movie in movies[:5]:
+        movie_title = getattr(movie, 'title', None) or movie.get('title', 'Unknown')
+        imdb_id = getattr(movie, 'movieID', None) or movie.get('imdb_id', '')
+        if movie_title and imdb_id:
+            buttons.append([InlineKeyboardButton(text=movie_title, callback_data=f"spol#{imdb_id}#{user_id}")])
+
+    buttons.append([InlineKeyboardButton(text="🚫 ᴄʟᴏsᴇ 🚫", callback_data='close_data')])
+
+    d = await message.reply_text(
+        text=script.CUDNT_FND.format(message.from_user.mention), 
+        reply_markup=InlineKeyboardMarkup(buttons), 
+        reply_to_message_id=message.id
     )
-    d = await message.reply_text(text=script.CUDNT_FND.format(message.from_user.mention), reply_markup=InlineKeyboardMarkup(buttons), reply_to_message_id=message.id)
     await asyncio.sleep(60)
-    await d.delete()
     try:
+        await d.delete()
         await message.delete()
     except Exception:
         pass

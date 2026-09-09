@@ -1060,13 +1060,13 @@ async def ai_spell_check(chat_id, wrong_name):
     return None
 
 
-async def advantage_spell_chok(message):
+async def advantage_spell_chok(client, message):
     mv_id = message.id
     search = message.text
     chat_id = message.chat.id
     settings = await get_settings(chat_id)
     
-    # 1. Clean the query (remove stop words/fillers)
+    # 1. Clean query
     cleaned_query = re.sub(
         r"\b(pl(i|e)*?(s|z+|ease|se|ese|(e+)s(e)?)|((send|snd|giv(e)?|gib)(\sme)?)|movie(s)?|new|latest|br((o|u)h?)*|^h(e|a)?(l)*(o)*|mal(ayalam)?|t(h)?amil|file|that|find|und(o)*|kit(t(i|y)?)?o(w)?|thar(u)?(o)*w?|kittum(o)*|aya(k)*(um(o)*)?|full\smovie|any(one)|with\ssubtitle(s)?)",
         "", search, flags=re.IGNORECASE
@@ -1075,21 +1075,20 @@ async def advantage_spell_chok(message):
     if not cleaned_query:
         cleaned_query = search.strip()
 
-    # 2. First attempt AI auto-correction using IMDb & Database match
+    # 2. Try direct AI spell check & database verification
     corrected_title = await ai_spell_check(chat_id, cleaned_query)
     if corrected_title:
-        # Re-run auto_filter with the verified corrected movie name
         message.text = corrected_title
         return await auto_filter(client, message)
 
-    # 3. If AI check couldn't auto-resolve, fetch IMDb poster/title suggestions
+    # 3. Fetch posters/titles from IMDb
     try:
         movies = await get_poster(cleaned_query, bulk=True)
     except Exception as e:
         LOGGER.error(f"Error fetching posters: {e}")
         movies = None
 
-    # 4. Fallback if IMDb yields no titles
+    # 4. Fallback Google search button if no IMDb matches found
     if not movies:
         google_query = quote_plus(search)
         button = [[
@@ -1108,12 +1107,11 @@ async def advantage_spell_chok(message):
             pass
         return
 
-    # 5. Build inline selection buttons for suggested movie titles
+    # 5. Build title selection buttons
     user = message.from_user.id if message.from_user else 0
     buttons = []
     
-    for movie in movies[:5]:  # Limit to top 5 candidates to prevent button overflow
-        # Safe extraction for dicts or Cinemagoer Movie objects
+    for movie in movies[:5]:
         title = getattr(movie, 'title', None) or movie.get('title', 'Unknown')
         movie_id = getattr(movie, 'movieID', None) or movie.get('imdb_id', '')
         
